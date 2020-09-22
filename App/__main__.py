@@ -3,7 +3,7 @@ from typing import List, Dict, Union
 from pathlib import Path
 
 
-FILENAME = 'Collectiondata/boardgamecollections.yml'
+FILENAME = 'collectiondata/boardgamecollections.yml'
 
 
 class BoardGame(object):
@@ -54,7 +54,7 @@ class Collection(object):
         }
 
 
-def load_data(filename: str = FILENAME) -> List[Dict[str, List[str, int, int, int]]]:
+def load_data(filename: str = FILENAME) -> List[Dict]:
     """Load data from filename (default: boardgamecollections.yml). If the file does not exist, create it"""
     file = Path(filename)
     if not file.exists():
