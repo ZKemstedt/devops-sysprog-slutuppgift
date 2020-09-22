@@ -3,11 +3,15 @@
 *.py[cod]
 .mypy_cache/
 
-# virtualenv
-.env
-.venv
-venv/
-ENV/
+# 
+*.pdf
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+# Pipfile.lock
 
 # Mac OS .DS_Store, which is a file that stores custom attributes of its containing folder
 .DS_Store

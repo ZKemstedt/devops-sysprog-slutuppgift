@@ -1,9 +1,9 @@
 import yaml
-import typing as t
+from typing import List, Dict, Union
 from pathlib import Path
 
 
-FILENAME = 'boardgamecollections.yml'
+FILENAME = 'Collectiondata/boardgamecollections.yml'
 
 
 class BoardGame(object):
@@ -25,13 +25,13 @@ class BoardGame(object):
         setattr(self, field, value)
         print(f'Set {field} to {value}.')
 
-    def save(self) -> t.List:
+    def save(self) -> List:
         return [self.title, self.nplayers, self.duration, self.age_recommendation]
 
 
 class Collection(object):
 
-    def __init__(self, name: str, games: t.List[BoardGame] = []):
+    def __init__(self, name: str, games: List[BoardGame] = []):
         self.boardgames = games
         self.name = name  # name to differentiate between different collections, default name = 'default' ?
 
@@ -47,14 +47,14 @@ class Collection(object):
     def edit_game(self):
         pass
 
-    def save(self) -> t.Dict:
+    def save(self) -> Dict:
         return {
             'name': self.name,
             'boardgames': [game.save() for game in self.boardgames]
         }
 
 
-def load_data(filename: str = FILENAME) -> t.List[t.Dict]:
+def load_data(filename: str = FILENAME) -> List[Dict[str, List[str, int, int, int]]]:
     """Load data from filename (default: boardgamecollections.yml). If the file does not exist, create it"""
     file = Path(filename)
     if not file.exists():
@@ -73,7 +73,7 @@ def save_data(data: dict, filename: str = FILENAME) -> None:
         yaml.dump_all(data, f, default_flow_style=False, explicit_start=True)
 
 
-def get_user_input(prompt: str = '>> ', isint: bool = False, options: t.List[str] = None) -> t.Union[str, int]:
+def get_user_input(prompt: str = '>> ', isint: bool = False, options: List[str] = None) -> Union[str, int]:
     pass
 
 
@@ -97,23 +97,23 @@ if __name__ == "__main__":
 # - load -
 # file -> List [ Collection [ BoardGames ] ]
 #
-#   fileformat -> List [
+# - save -
+# List [ Collection [ BoardGames ] ] -> file
+#
+# - fileformat -
+#   List [ (collections)
 #       Dict { (Collection)
-#           name: str,
-#           boardgames: List [
-#               Dict { (BoardGame)
-#                   title: str,
-#                   nplayers: int,
-#                   duration: int,
-#                   age_recommendation: int
-#               }
+#           name: str, (name)
+#           boardgames: List [ (boardgames)
+#               List [ (BoardGame)
+#                   str, (title)
+#                   int, (nplayers)
+#                   int, (duration)
+#                   int, (age_recommendation)
+#               ]
 #           ]
 #       }
 #   ]
-
-
-# - save -
-# List [ Collection [ BoardGames ] ] -> file
 
 
 # -- Input & Menu Loop --
@@ -133,4 +133,4 @@ if __name__ == "__main__":
 # change collection
 # played
 # user_ratings
-# filter-extension: show non-exact matches at bottom of list.
+# filter-extension: show non-exact matches at bottom of lis

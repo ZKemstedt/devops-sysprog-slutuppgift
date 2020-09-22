@@ -1,0 +1,13 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pyyaml = "~=5.1"
+
+[requires]
+python_version = "3.8"
+
+[scripts]
+start = "python __main__.py"
