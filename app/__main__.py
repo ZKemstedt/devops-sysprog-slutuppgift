@@ -3,6 +3,23 @@ from typing import List, Dict, Tuple
 from pathlib import Path
 
 
+INTRODUCTION = """
+    Collection Manager v1
+            by Zephyro
+    """
+MAIN_INSTRUCTIONS = """
+    1 add boardgame         ::= 1 [title] [nplayers] [duration] [recommended_age]
+    2 remove boardgame      ::= 2 [title|index]
+    3 modify boardgame      ::= 3 [title|index] [field] [new value]
+    4 list boardgames*      ::= 4
+    5 rate boardgame*       ::= 5 [title|index] [rating]
+    6 play boardgame*       ::= 6 [title|index]
+    7 manage collections    ::= 7
+    ? show help             ::= ?
+    0 exit                  ::= 0
+"""
+
+
 class BoardGame(object):
     int_fields = ['nplayers', 'duration', 'age_recommendation', 'rating', 'times_played']
     hard_ints = ['times_played']
@@ -20,7 +37,7 @@ class BoardGame(object):
         setattr(self, field, value)
 
     def save(self) -> List:
-        return [self.title, self.nplayers, self.duration, self.age_recommendation]
+        return [self.title, self.nplayers, self.duration, self.age_recommendation, self.rating, self.times_played]
 
     def __str__(self) -> str:
         return (self.title.ljust(30) +
@@ -51,13 +68,13 @@ class Collection(object):
                 'duration'.rjust(10) +
                 'recommended_age'.rjust(17) +
                 'times_played'.rjust(14) +
-                'rating'.rjust(8)
-                )
-        text += '\n'.join(f'{i.rjust(3)}' + str(game) for i, game in enumerate(self.games))
+                'rating'.rjust(8) +
+                '\n\n')
+        text += '\n'.join(f'{i}'.ljust(3) + str(game) for i, game in enumerate(self.games))
         print(text)
 
     def validate_game(self, key: str) -> BoardGame:
-        if key.isdigit() and len(self.games) >= int(key):
+        if key.isdigit() and len(self.games) - 1 >= int(key):
             game = self.games[int(key)]
         elif key.isdigit():
             print('Error: index out of bounds.')
@@ -73,12 +90,12 @@ class Collection(object):
         if any(game.title == title for game in self.games):
             print('Error: This game already exists.')
             return
-        elif not all(nplayers.isdigit(), duration.isdigit(), age.isdigit(), isinstance(times_played, int)):
+        elif not all((nplayers.isdigit(), duration.isdigit(), age.isdigit(), isinstance(times_played, int))):
             # don't bother telling the user about times_played having to be an integer
             print('Error: [nplayers], [duration] and [age_recommendation] must all be integers!')
             return
         else:
-            self.games.append(BoardGame(title, int(nplayers), int(duration), int(age)))
+            self.games.append(BoardGame(title, nplayers, duration, age, rating, times_played))
             print('Successfully added the game.')
 
     def remove_game(self, key: str) -> None:
@@ -103,13 +120,13 @@ class Collection(object):
                 print(f'Successfully set {field} to {value} for {game.title}')
 
     def rate_game(self, key: str, rating: str) -> None:
-        game = self.validate_game
+        game = self.validate_game(key)
         if game:
             game.set_rating(rating)
             print(f'Successfully set rating to {rating} for {game.title}')
 
     def play_game(self, key: str) -> None:
-        game = self.validate_game
+        game = self.validate_game(key)
         if game:
             game.inc_times_played()
             print(f'Played the game once, total times played: {game.times_played}')
@@ -122,75 +139,30 @@ class Collection(object):
 
 
 def user_input() -> Tuple[str, ]:
-    return input('>> ').lower().split(' ')
+    return input('>> ').strip().lower().split(' ')
 
 
-if __name__ == "__main__":
-    # load data
-    file = Path('collectiondata', 'boardgamecollections.yml')
-    file.parent.mkdir(exist_ok=True)
-    with file.open(encoding="UTF-8") as f:
-        data = yaml.safe_load(f)
-    if not data:
-        data = []
-        print('File was empty or did not exist, no collections have been loaded.')
-
-    # populate collections
-    collections = []
-    for collection in data:
-        boardgames = [BoardGame(*args) for args in collection['boardgames']]
-        collections.append(Collection(name=collection['name'], games=boardgames))
-    if collections:
-        print(f'Loaded {len(collections)} collections from file.')
-
-    # cleanup
-    del data
-
-    # starting point
-    collection = None if not collections else collections[0]
-
-    # text vars
-    introduction = """
-        Collection Manager v1
-                by Zephyro
-
-    """
-    main_instructions = """
-    1 [title] [nplayers] [duration] [recommended_age] add boardgame
-    2 [title|index] remove boardgame
-    3 [title|index] [field] [new value] modify boardgame
-    4  list boardgames*
-    5 [title|index] [rating] rate boardgame*
-    6 [title|index] play boardgame*
-    7  manage collections
-    ?  show help
-    0  exit
-    """
-    print(main_instructions)
+def main_menu(collections) -> Tuple[List, int]:
     while True:
-
-        if not collection:
-            print('Warning: the currently selected collection was deleted.')
-            if not collections:
-                print('Creating default collection \"Base\"...')
-                collections.append(Collection(name='Base'))
-            collection = collections[0]
-            print(f'Selected collection {collection.name}.')
 
         try:
             args = user_input()
             action = args.pop(0)
 
             if not args:  # only action
-                if action == '?':
-                    print(main_instructions)
+                if not action:
+                    print('type ? for help, 0 to exit')
+                elif action == '?':
+                    print(MAIN_INSTRUCTIONS)
                 elif action == '0':
                     print('Saving data and exiting...')
                     break
                 elif action == '4':
                     collection.list_games()
+                elif action == '7':
+                    return 2
                 else:
-                    print('Invalid argument or argument count.')
+                    print('Invalid action or argument count.')
             else:
                 try:
                     if action == '1':
@@ -203,14 +175,63 @@ if __name__ == "__main__":
                         collection.rate_game(*args)
                     elif action == '6':
                         collection.play_game(*args)
-                    elif action == '7':
-                        print('Not yet implemented')
-
-                except TypeError:
+                    else:
+                        print('Invalid action or argument count.')
+                except TypeError as e:
+                    print(e)  # for debugging
                     print('Invalid argument count, returning to main menu...')
 
         except KeyboardInterrupt:
             print('Saving data and exiting...')
+            break
+    return 0
+
+
+if __name__ == "__main__":
+    # load data
+    file = Path('collectiondata', 'boardgamecollections.yml')
+    with file.open(encoding="UTF-8") as f:
+        data = yaml.safe_load(f)
+    if not data:
+        data = []
+        print('File was empty or did not exist, no collections have been loaded.')
+
+    # Convert data to Collection and BoardGame objects
+    collections = []
+    for collection in data:
+        boardgames = [BoardGame(*args) for args in collection['boardgames']]
+        collections.append(Collection(name=collection['name'], games=boardgames))
+    if collections:
+        print(f'Loaded {len(collections)} collections from file.')
+
+    # cleanup
+    del data
+
+    # starting point
+    if not collections:
+        collections.append(Collection(name='Base'))
+
+    collection = collections[0]
+    code = 1  # 0: exit, 1: main_menu, 2: manage_collections
+
+    # start main loop
+    print(INTRODUCTION)
+    print(MAIN_INSTRUCTIONS)
+    while True:
+        if code == 1:
+            if not collection:
+                print('Warning: the last selected collection was deleted.')
+                if not collections:
+                    print('Creating default collection \"Base\"...')
+                    collections.append(Collection(name='Base'))
+                collection = collections[0]
+                print(f'Selected collection {collection.name}.')
+            code = main_menu(collection)
+        elif code == 2:
+            print('Not yet implemented')
+            code = 1
+
+        if code == 0:
             break
 
     # save data
@@ -220,32 +241,10 @@ if __name__ == "__main__":
     # exit
 
 
-# -- Data --
-
-# - load -
-# file -> List [ Collection [ BoardGames ] ]
-#
-# - save -
-# List [ Collection [ BoardGames ] ] -> file
-#
-# - fileformat -
-#   List [ (collections)
-#       Dict { (Collection)
-#           name: str, (name)
-#           boardgames: List [ (boardgames)
-#               List [ (BoardGame)
-#                   str, (title)
-#                   int, (nplayers)
-#                   int, (duration)
-#                   int, (age_recommendation)
-#               ]
-#           ]
-#       }
-#   ]
-
+# TODO
 
 # - Advanced -
-# search (filter) collection of boardgames
+# list (filter) collection of boardgames
 
 # - Bonus -
 # list all boardgames (in all collections)
