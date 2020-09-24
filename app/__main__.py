@@ -28,7 +28,7 @@ MAIN_MENU_CHOICES = [
 ]
 
 MAIN_MENU_INSTRUCTIONS = """
-  1 add boardgame             ::= 1 [title] [nplayers] [duration] [recommended_age]
+  1 add boardgame             ::= 1 [title] [players] [duration] [recommended_age]
   2 remove boardgame          ::= 2 [title|index]
   3 modify boardgame          ::= 3 [title|index] [field] [new value]
   4 list boardgames*          ::= 4
@@ -68,7 +68,7 @@ FILTER_MARGINS = {
     'name': '',
     # BoardGame
     'title': '',
-    'nplayers': 2,
+    'players': 2,
     'duration': 4,
     'age_recommendation': 3,
     'rating': 1,
@@ -77,13 +77,13 @@ FILTER_MARGINS = {
 
 
 class BoardGame(object):
-    int_fields = ['nplayers', 'duration', 'age_recommendation', 'rating', 'times_played']
+    int_fields = ['players', 'duration', 'age_recommendation', 'rating', 'times_played']
     fields = int_fields + ['title']
 
-    def __init__(self, title: str, nplayers: str, duration: str, age: str, times_played: str = '',
+    def __init__(self, title: str, players: str, duration: str, age: str, times_played: str = '',
                  rating: str = ''):
         self.title = title
-        self.nplayers = nplayers
+        self.players = players
         self.duration = duration
         self.age_recommendation = age
         self.times_played = times_played
@@ -93,15 +93,15 @@ class BoardGame(object):
         setattr(self, field, value)
 
     def save(self) -> List:
-        return [self.title, self.nplayers, self.duration, self.age_recommendation, self.rating, self.times_played]
+        return [self.title, self.players, self.duration, self.age_recommendation, self.rating, self.times_played]
 
     def __str__(self) -> str:
         return (str_sized(self.title, 29).ljust(30)
-                + str_sized(self.nplayers.rjust(5), 4)
-                + str_sized((self.duration, 8) + 'm ').rjust(10)
+                + str_sized(self.players, 4).rjust(5)
+                + (str_sized(self.duration, 8) + 'm ').rjust(10)
                 + str_sized(self.age_recommendation, 16).rjust(17)
                 + str_sized(self.times_played, 13).rjust(14)
-                + str_sized(self.rating.rjust(8), 7)
+                + str_sized(self.rating, 7).rjust(8)
                 )
 
     def set_rating(self, rating: str) -> None:
@@ -129,31 +129,26 @@ class Collection(object):
         return text
 
     def list_games(self, *filter_args) -> str:
-        # headers
-        text = ('i'.ljust(3) +
-                'title'.ljust(30) +
-                'players'.rjust(5) +
-                'duration'.rjust(10) +
-                'recommended_age'.rjust(17) +
-                'times_played'.rjust(14) +
-                'rating'.rjust(8) +
-                '\n\n')
-        filters = []
+        line = '\n' + '---' * 30 + '\n'
+        weak_line = '\n' + '-  ' * 30 + '\n'
+        header = (''
+                  + 'title'.ljust(30)
+                  + 'players'.rjust(5)
+                  + 'duration'.rjust(10)
+                  + 'recommended_age'.rjust(17)
+                  + 'times_played'.rjust(14)
+                  + 'rating'.rjust(8)
+                  )
 
         if filter_args:
-            filters = valideate_filters(fields=BoardGame.fields, *filter_args)
-        if not filters:
-            text += '\n'.join(f'{i}'.ljust(3) + str(game) for i, game in enumerate(self.games))
-            return text
+            filters = validate_filters(BoardGame.fields, *filter_args)
+            if filters:
+                print(f'Debug (l_g): filters: {filters}')
+                return stringify_filter_results(header, *_filter(items=self.games, filters=filters))
 
-        # NOTE (l_g) l_g
-        # filters ~ index column not displayed in filtered results since it's inaccurate
-        print(f'Debug (l_g): filters: {filters}')
-        exact_matches, close_matches = _filter(fields=BoardGame.fields, items=self.games, filters=filters)
-        text += '\n'.join(str(game) for game in (exact_matches))
-        text += '-' * 72
-        text += '\n'.join(str(game) for game in (close_matches))
-        return text
+        header = 'i'.ljust(3) + header
+        text = '\n'.join(f'{i}'.ljust(3) + str(game) for i, game in enumerate(self.games))
+        return line + header + weak_line + text + line
 
     def validate_game(self, key: str) -> BoardGame:
         if key.isdigit() and len(self.games) - 1 >= int(key):
@@ -167,16 +162,16 @@ class Collection(object):
                 print(f'Error: game `{key}` could not be found.')
         return game
 
-    def add_game(self, title: str, nplayers: str, duration: str, age: str,
+    def add_game(self, title: str, players: str, duration: str, age: str,
                  times_played: str = '', rating: str = '') -> None:
         if any(game.title == title for game in self.games):
             print('Error: This game already exists.')
             return
-        elif not all((nplayers.isdigit(), duration.isdigit(), age.isdigit(), times_played.isdigit())):
-            print('Error: [nplayers], [duration] and [age_recommendation] must all be integers!')
+        elif not all((players.isdigit(), duration.isdigit(), age.isdigit(), times_played.isdigit())):
+            print('Error: [players], [duration] and [age_recommendation] must all be integers!')
             return
         else:
-            self.games.append(BoardGame(title, nplayers, duration, age, rating, times_played))
+            self.games.append(BoardGame(title, players, duration, age, rating, times_played))
             print('Info: Successfully added the game.')
 
     def remove_game(self, key: str) -> None:
@@ -217,7 +212,7 @@ class Collection(object):
         }
 
 
-def valideate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:
+def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:
     """Construct a list of valid filter tuples (field, value) from user input.
 
     Args:
@@ -234,10 +229,10 @@ def valideate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[
     for i in range(0, len(filter_args), 2):
         try:
             print(f'Debug (v_f): Trying filter construction {i}...')
-            field = filter_args.pop[i]
-            value = filter_args.pop[i+1]
+            field = filter_args[i]
+            value = filter_args[i+1]
             print(f'Debug (v_f): Field: {field}, value: {value}')
-            if any(field in filters):
+            if any(field in fil[0] for fil in filters):
                 print('Warning: Cannot have more than 1 filter per field!')
                 print(f'Info: denied filter: ({field}, {value})')
                 continue
@@ -274,7 +269,7 @@ def str_sized(string: str, lenth: int) -> str:
 
 
 def big_title(titletext: str) -> str:
-    """Generate a fancy title spacer, takes the titletext as an argument wich must be less than 40 characters long."""
+    """Generate a fancy title spacer, takes the titletext as an argument which must be less than 40 characters long."""
     if len(titletext) > 40:
         print(f'Warning: titletext larger than 40 charachters!\n{titletext}')
         titletext = 'Invalid title, stupid.'
@@ -314,7 +309,7 @@ def _filter(items: List[Any], filters: List[Tuple[str, str]]) -> Tuple[List[Any]
 
     Args:
         items (List[Any]): the sequence of items to filter
-        filters (List[Tuple[str, str]]): the filters to use, as returned by `valideate_filters()`.
+        filters (List[Tuple[str, str]]): the filters to use, as returned by `validate_filters()`.
 
     Returns:
         Tuple[List[Any], List[Any]]: Two lists containing the exact matches and close matches respectively
@@ -340,9 +335,24 @@ def _filter(items: List[Any], filters: List[Tuple[str, str]]) -> Tuple[List[Any]
     match_count = {}
     for item in set(all_close_matches):
         match_count[str(item)] = all_close_matches.count(item)
-    close_matches = [v for k, v in sorted(match_count.items(), key=lambda item: item[1])]
+    close_matches = [k for k, v in sorted(match_count.items(), key=lambda item: item[1])]
 
     return exact_matches, close_matches
+
+
+def stringify_filter_results(header: str, exact_result: List[Any], close_result: List[Any]) -> None:
+    """Creates and returns a nice display format string for the results from a `_filter` call"""
+    line = '\n' + '---' * 30 + '\n'
+    weak_line = '\n' + '-  ' * 30 + '\n'
+    if exact_result:
+        exact_text = '\n'.join(str(game) for game in (exact_result))
+    else:
+        exact_text = f'{"< no exact matches >":^80}'
+    if close_result:
+        close_text = '\n'.join(str(item) for item in (close_result))
+    else:
+        close_text = f'{"< no close matches >":^80}'
+    return line + header + weak_line + exact_text + weak_line + close_text + line
 
 
 def main_menu(collection: Collection) -> int:
@@ -382,7 +392,7 @@ def main_menu(collection: Collection) -> int:
                     ccode = 2
                     break
                 else:
-                    print(f'Error: Command {action} requires arguments, but no arguments were given.')
+                    print('Error: Invalid argument count')
             else:
                 if action == '1' and len(args) >= 4 and len(args) <= 6:
                     collection.add_game(*args)
@@ -406,7 +416,7 @@ def main_menu(collection: Collection) -> int:
                     key = args[0]
                     collection.play_game(key)
                 else:
-                    print(f'Error: Arguments were given but command {action} does not support arguments.')
+                    print('Error: Invalid argument count')
 
         except KeyboardInterrupt:
             ccode = 0
@@ -458,7 +468,7 @@ def manage_collections_menu(collection: Collection, collections: List[Collection
                     ccode = 1
                     break
                 else:
-                    print(f'Error: Command {action} requires arguments, but no arguments were given.')
+                    print('Error: Invalid argument count')
             else:
                 if action == '1' and len(args) == 1:
                     collections.append(Collection(name=args[0]))
@@ -482,8 +492,8 @@ def manage_collections_menu(collection: Collection, collections: List[Collection
                 elif action == '4':
                     print(CLEAR)
                     fields = 'name'
-                    filters = valideate_filters(fields=fields, *args)
-                    exact, close = _filter(fields=fields, items=collections, filters=filters)
+                    filters = validate_filters(fields, *args)
+                    exact, close = _filter(items=collections, filters=filters)
                     print(exact)  # only show exact matches
 
                 elif action == '5':
@@ -491,7 +501,7 @@ def manage_collections_menu(collection: Collection, collections: List[Collection
                     if col:
                         collection = col
                 else:
-                    print(f'Error: Arguments were given but command {action} does not support arguments.')
+                    print('Error: Invalid argument count')
 
         except KeyboardInterrupt:
             ccode = 0
