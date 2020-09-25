@@ -15,18 +15,6 @@ INTRODUCTION = """
     Made by Zephyro @ https://github.com/ZKemstedt/devops-sysprog-slutuppgift
     """
 
-MAIN_MENU_CHOICES = [
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '6',
-    '8',
-    '?',
-    '0',
-]
-
 MAIN_MENU_INSTRUCTIONS = """
   1 add boardgame             ::= 1 [title] [players] [duration] [recommended_age]
   2 remove boardgame          ::= 2 [title|index]
@@ -40,16 +28,6 @@ MAIN_MENU_INSTRUCTIONS = """
   0 exit                      ::= 0
 """
 
-MANAGE_COLLECTIONS_MENU_CHOICES = [
-    '1',
-    '2',
-    '3',
-    '4',
-    '5',
-    '8',
-    '?',
-    '0',
-]
 
 MANAGE_COLLECTIONS_MENU_INSTRUCTIONS = """
   1 create new collection     ::= 1 [name]
@@ -107,6 +85,7 @@ class BoardGame(object):
         self.rating = rating
 
     def inc_times_played(self, inc: int = 1) -> None:
+        # I like storing my integers as strings, okay!?
         self.times_played = f'{int(self.times_played) + int(inc)}'
 
 
@@ -149,16 +128,17 @@ class Collection(object):
         text = '\n'.join(f'{i}'.ljust(3) + str(game) for i, game in enumerate(self.games))
         return line + header + weak_line + text + line
 
-    def validate_game(self, key: str) -> BoardGame:
+    def get_game(self, key: str) -> BoardGame:
+        """Return the `BoardGames` instance at index `key` or with the title `key`"""
         if key.isdigit() and len(self.games) - 1 >= int(key):
             game = self.games[int(key)]
         elif key.isdigit():
             print('Error: index out of bounds.')
-            game = None
+            return None
         else:
             game = next((game for game in self.games if game.title == key), None)
-            if not game:
-                print(f'Error: game `{key}` could not be found.')
+        if not game:
+            print(f'Error: game `{key}` could not be found.')
         return game
 
     def add_game(self, title: str, players: str, duration: str, age: str,
@@ -173,34 +153,24 @@ class Collection(object):
             self.games.append(BoardGame(title, players, duration, age, rating, times_played))
             print('Info: Successfully added the game.')
 
-    def remove_game(self, key: str) -> None:
-        game = self.validate_game(key)
-        if game:
+    def remove_game(self, game: BoardGame) -> None:
+        if game in self.games:
             self.games.remove(game)
             print('Info: Successfully removed the game.')
 
-    def edit_game(self, key: str, field: str, value: str) -> None:
-        game = self.validate_game(key)
-        if game:
-            if field not in vars(game):
-                print(f'Error: Invalid field `{field}`')
-                return
-            if field in BoardGame.int_fields and not value.isdigit():
-                print(f'Error: {field} must be an integer!')
-                return
-            else:
+    def edit_game(self, game: BoardGame, field: str, value: str) -> None:
+        if game in self.games and field in BoardGame.fields:
+            if field in BoardGame.int_fields and value.isdigit() or field not in BoardGame.int_fields:
                 game.modify(field, value)
                 print(f'Info: Successfully set {field} to {value} for {game.title}')
 
-    def rate_game(self, key: str, rating: str) -> None:
-        game = self.validate_game(key)
-        if game:
+    def rate_game(self, game: BoardGame, rating: str) -> None:
+        if game in self.games:
             game.set_rating(rating)
             print(f'Info: Successfully set rating to {rating} for {game.title}')
 
-    def play_game(self, key: str) -> None:
-        game = self.validate_game(key)
-        if game:
+    def play_game(self, game: BoardGame) -> None:
+        if game in self.games:
             game.inc_times_played()
             print(f'Info: You played the game, total times played: {game.times_played}')
 
@@ -244,16 +214,8 @@ def big_title(titletext: str) -> str:
     return '\n'.join('{:^80}'.format(s) for s in [line, space, title, space, line])
 
 
-def validate_collection(collections: List[Collection], key: str) -> Collection:
-    """Return the collection specified by `key` if found, else None.
-
-    Args:
-        collections (List[Collection]): the currently registered Collections
-        key (str): Either the index of the Collection or the name of the Collection
-
-    Returns:
-        Collection: the Collection that was identified. If no collection was found, this is None
-    """
+def get_collection(collections: List[Collection], key: str) -> Collection:
+    """Return the Collection instance specified by `key` if found in `collections`, else None."""
     if key.isdigit() and len(collections) - 1 >= int(key):
         return collections[int(key)]
     elif key.isdigit():
@@ -267,15 +229,7 @@ def validate_collection(collections: List[Collection], key: str) -> Collection:
 
 
 def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:
-    """Construct a list of valid filter tuples (field, value) from user input.
-
-    Args:
-        fields (List[str]): the fields that can be filtered
-        filter_args (List[str]): the user's input
-
-    Returns:
-        List[Tuple[str, str]]: list of filter tuples (field, value)
-    """
+    """Construct a list of valid filter tuples (field, value) from a list of valid fields and user input."""
     filters = []  # NOTE (v_f) v_f
 
     # print(f'Debug (v_f): len(args): {len(filter_args)}')
@@ -303,25 +257,19 @@ def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[s
     return filters
 
 
+# NOTE / TODO Actually `close_matches` is a list of str, not a list of Any, currently this is not a problem
+# because the returned values of this function is always printed, this might cause issues in the future.
 def _filter(items: List[Any], filters: List[Tuple[str, str]]) -> Tuple[List[Any], List[Any]]:
-    """Filter through a sequence of objects, return the exact- and close matches
-
-    Args:
-        items (List[Any]): the sequence of items to filter
-        filters (List[Tuple[str, str]]): the filters to use, as returned by `validate_filters()`.
-
-    Returns:
-        Tuple[List[Any], List[Any]]: Two lists containing the exact matches and close matches respectively
-    """
-    # 1. exact matches by iterative intersection of items and matches
+    """Apply a sequence of filters on a sequence of objects, return the exact- and close matches"""
+    # 1. exact matches: iteratively filter out the intersection of all items and the matches
     exact_matches = set(items)
     for field, value in filters:
         exact_matches &= {item for item in items if getattr(item, field) == value}
 
-    # 2 close matches:
+    # 2. close matches:
     #       partial matches (matches that only match some fields)
     #       marginal matches (fields with margin match within it)
-    # 2.1 close matches ~ get ALL matches against the items not included in `exact matches`
+    # 2.1. Get ALL matches against the items not included in `exact matches`
     all_close_matches = []
     remaining_items = list(set(items) - exact_matches)
     for field, value in filters:
@@ -330,13 +278,13 @@ def _filter(items: List[Any], filters: List[Tuple[str, str]]) -> Tuple[List[Any]
         else:
             all_close_matches += [item for item in remaining_items
                                   if abs(int(getattr(item, field)) - int(value)) <= FILTER_MARGINS[field]]
-    # 2.2 close matches ~ sort by match count
+    # 2.2. Sort by match count
     match_count = {}
     for item in set(all_close_matches):
-        match_count[str(item)] = all_close_matches.count(item)
-    close_matches = [k for k, v in sorted(match_count.items(), key=lambda item: item[1])]
+        match_count[all_close_matches.count(item)] = item
+    close_matches = [v for k, v in sorted(match_count.items(), key=lambda item: item[0])]
 
-    return exact_matches, close_matches
+    return exact_matches, close_matches  # NOTE actually `close_matches` is a list of str, not a list of Any
 
 
 def stringify_filter_results(header: str, exact_result: List[Any], close_result: List[Any]) -> str:
@@ -354,158 +302,89 @@ def stringify_filter_results(header: str, exact_result: List[Any], close_result:
     return line + header + weak_line + exact_text + weak_line + close_text + line
 
 
-def main_menu(collection: Collection) -> int:
+def main(col: Collection, cols: List[Collection]) -> None:
     """Main Menu loop
 
     Args:
-        collection (Collection): The currently selected collection instance.
-
-    Returns:
-        ccode (int): 0 to exit, 2 to go to manage_collections
+        col (Collection): The currently selected instance of `Collection`.
+        cols: (List[Collection]) The currently registered collections.
     """
+    MAIN_MENU_CHOICES = {
+        '1': lambda col, *args: col.add_game(*args),
+        '2': lambda col, key: col.remove_game(col.get_game(key)),
+        '3': lambda col, key, field, value: col.edit_game(col.get_game(key), field, value),
+        '4': lambda x: col.list_games(),
+        '5': lambda col, key, rating: col.rate_game(col.get_game(key), rating),
+        '6': lambda col, key: col.play_game(col.get_game(key)),
+        '7': lambda col, *args: col.list_games(*args),
+        '8': lambda x: MANAGE_COLLECTIONS_MENU_CHOICES,
+        '?': lambda x: MAIN_MENU_INSTRUCTIONS,
+        '0': lambda x: 0,
+        # "secret", not harmful
+        'title': lambda x: big_title('Main Menu'),
+    }
+
+    MANAGE_COLLECTIONS_MENU_CHOICES = {
+        '1': lambda name: cols.append(Collection(name)
+                                      if not any(c.name == name for c in cols)
+                                      else 'Error: a collection with that name already exists'),
+        '2': lambda key: cols.remove(get_collection(key)) if get_collection(key) else None,
+        '3': lambda key, name: get_collection(key).change_name(name) if get_collection(key) else None,
+        '4': lambda x: CLEAR + [str(c) for c in cols],
+        '5': lambda key: get_collection(key),
+        '8': lambda x: MAIN_MENU_CHOICES,
+        '?': lambda x: MANAGE_COLLECTIONS_MENU_INSTRUCTIONS,
+        '0': lambda x: 0,
+        # "secret", not harmful
+        'title': lambda x: big_title('Manage Collections'),
+    }
     print(CLEAR)
-    print(big_title('Main Menu'))
-    print(MAIN_MENU_INSTRUCTIONS)
+
+    # Start at main menu
+    _menu = MAIN_MENU_CHOICES
+    print(_menu['title'](None))
+    print(_menu['?'](None))
+
     while True:
-
-        col = collection.name if len(collection.name) <= 15 else collection.name[:13] + '...'
-        prompt = f'(col: {col})'
-        try:
-            args = user_input(prompt)
-            action = args.pop(0)
-            if not action:
-                print('Tips: type ? for help, 0 to exit')
-
-            elif action not in MAIN_MENU_CHOICES:
-                print('Error: Invalid command.')
-
-            elif not args:
-                if action == '?':
-                    print(MAIN_MENU_INSTRUCTIONS)
-                elif action == '0':
-                    ccode = 0
-                    break
-                elif action == '4':
-                    print(collection.list_games())
-                elif action == '8':
-                    ccode = 2
-                    break
-                else:
-                    print('Error: Invalid argument count')
-            else:
-                if action == '1' and len(args) >= 4 and len(args) <= 6:
-                    collection.add_game(*args)
-
-                elif action == '2' and len(args) == 1:
-                    key = args[0]
-                    collection.remove_game(key)
-
-                elif action == '3' and len(args) == 3:
-                    key, field, value = args
-                    collection.edit_game(key, field, value)
-
-                elif action == '4':
-                    print(collection.list_games(*args))
-
-                elif action == '5' and len(args) == 2:
-                    key, rating = args
-                    collection.rate_game(key, rating)
-
-                elif action == '6' and len(args) == 1:
-                    key = args[0]
-                    collection.play_game(key)
-                else:
-                    print('Error: Invalid argument count')
-
-        except KeyboardInterrupt:
-            ccode = 0
-            break
-    return ccode
-
-
-def manage_collections_menu(collection: Collection, collections: List[Collection]) -> Tuple[Collection, int]:
-    """Manage collections menu loop
-
-    Args:
-        collection (Collection): the currently active Collection
-        collections (List[Collection]): the currently registered Collections
-
-    Returns:
-        Collection: the currently selected Collection. If deleted, this will be None
-        ccode (int): 0 to exit, 1 to go to main menu [ccode]
-    """
-    print(CLEAR)
-    print(big_title('Manage Collections'))
-    print(MANAGE_COLLECTIONS_MENU_INSTRUCTIONS)
-    while True:
-
-        if collection:
-            col = collection.name if len(collection.name) <= 15 else collection.name[:13] + '...'
-            prompt = f'(col: {col})'
+        ret = None
+        if col:
+            col_prompt = col.name if len(col.name) <= 15 else col.name[:13] + '...'
         else:
-            prompt = '(<no collection>)'
+            col_prompt = ('< no collection >')
         try:
-            args = user_input(prompt)
-            action = args.pop(0)
-            if not action:
-                print('Tips: type ? for help, 0 to exit')
-
-            elif action not in MANAGE_COLLECTIONS_MENU_CHOICES:
-                print('Error: Invalid command')
-
-            elif not args:
-                if action == '?':
-                    print(MANAGE_COLLECTIONS_MENU_INSTRUCTIONS)
-                elif action == '0':
-                    ccode = 0
-                    break
-                elif action == '4':
-                    print(CLEAR)
-                    for col in collections:
-                        print(col)
-                elif action == '8':
-                    ccode = 1
-                    break
-                else:
-                    print('Error: Invalid argument count')
-            else:
-                if action == '1' and len(args) == 1:
-                    collections.append(Collection(name=args[0]))
-                    print(f'Info: Successfully added new collection {args[0]}.')
-
-                elif action == '2' and len(args) == 2:
-                    col = validate_collection(collections, args[0])
-                    if col:
-                        if col == collection:
-                            collection = None
-                            print('Warning: The currently active collection was removed.')
-                        collections.remove(col)
-                        print('Info: Successfully removed collection.')
-
-                elif action == '3' and len(args) == 2:
-                    col = validate_collection(collections, args[0])
-                    if col:
-                        col.change_name(args[1])
-                        print(f'Successfully renamed collection to {args[0]}.')
-
-                elif action == '4':
-                    print(CLEAR)
-                    fields = 'name'
-                    filters = validate_filters(fields, *args)
-                    exact, close = _filter(items=collections, filters=filters)
-                    print(exact)  # only show exact matches
-
-                elif action == '5':
-                    col = validate_collection(collections, args[0])
-                    if col:
-                        collection = col
-                else:
-                    print('Error: Invalid argument count')
-
+            args = user_input(f'(col: {col_prompt})')
         except KeyboardInterrupt:
-            ccode = 0
-            break
-    return collection, ccode
+            return 0
+        action = args.pop(0)
+
+        if action in _menu:
+            try:
+                if args:
+                    ret = _menu[action](*args)
+                else:
+                    ret = _menu[action](None)
+                # print(f'Debug: type(ret): {type(ret)}')
+                # print(f'Debug: value(ret): {ret}')
+            except ValueError as e:
+                print('Error: Invalid argument count')
+                print(f'Debug: {e}')
+
+            if isinstance(ret, int):
+                return
+            elif isinstance(ret, str):
+                print(ret)
+            elif isinstance(ret, Collection):
+                col = ret
+            elif isinstance(ret, dict):
+                _menu = ret
+                print(CLEAR)
+                print(_menu['title'](None))
+                print(_menu['?'](None))
+
+        elif not action:
+            print('Tips: type ? for help, 0 to exit')
+        else:
+            print('Error: Invalid command.')
 
 
 if __name__ == "__main__":
@@ -534,31 +413,17 @@ if __name__ == "__main__":
     if not collections:
         collections.append(Collection(name='Base'))
     collection = collections[0]
-    ccode = 1  # NOTE core-code (ccode): 0: exit, 1: main_menu, 2: manage_collections
 
-    # Core loop.
+    # start main (menu).
     print(INTRODUCTION)
-    input('(press enter to start)')
-    while True:
-        # Main menu
-        if ccode == 1:
-            if not collection:
-                print('Warning: the last selected collection was deleted.')
-                if not collections:
-                    print('Info: Creating default collection \"Base\"...')
-                    collections.append(Collection(name='Base'))
-                collection = collections[0]
-                print(f'Info: Selected collection {collection.name}.')
-
-            ccode = main_menu(collection)
-        # Manage collections menu
-        elif ccode == 2:
-            collection, ccode = manage_collections_menu(collection, collections)
-        # User request exit
-        if ccode == 0:
-            break
-
+    try:
+        input('(press enter to start)')
+    except Exception:
+        pass
+    else:
+        main(collection, collections)
     print('Info: Saving data and exiting...')
+
     # save data
     data = [collection.save() for collection in collections]
     with file.open(mode='w', encoding="UTF-8") as f:
