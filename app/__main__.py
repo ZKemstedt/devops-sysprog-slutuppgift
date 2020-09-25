@@ -80,8 +80,7 @@ class BoardGame(object):
     int_fields = ['players', 'duration', 'age_recommendation', 'rating', 'times_played']
     fields = int_fields + ['title']
 
-    def __init__(self, title: str, players: str, duration: str, age: str, times_played: str = '',
-                 rating: str = ''):
+    def __init__(self, title: str, players: str, duration: str, age: str, times_played: str = '', rating: str = ''):
         self.title = title
         self.players = players
         self.duration = duration
@@ -212,43 +211,6 @@ class Collection(object):
         }
 
 
-def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:
-    """Construct a list of valid filter tuples (field, value) from user input.
-
-    Args:
-        fields (List[str]): the fields that can be filtered
-        filter_args (List[str]): the user's input
-
-    Returns:
-        List[Tuple[str, str]]: list of filter tuples (field, value)
-    """
-    filters = []  # NOTE (v_f) v_f
-
-    print(f'Debug (v_f): len(args): {len(filter_args)}')
-    print(f'Debug (v_f): filter_args: {filter_args}')
-    for i in range(0, len(filter_args), 2):
-        try:
-            print(f'Debug (v_f): Trying filter construction {i}...')
-            field = filter_args[i]
-            value = filter_args[i+1]
-            print(f'Debug (v_f): Field: {field}, value: {value}')
-            if any(field in fil[0] for fil in filters):
-                print('Warning: Cannot have more than 1 filter per field!')
-                print(f'Info: denied filter: ({field}, {value})')
-                continue
-            elif field in fields:
-                filters.append((field, value))
-                print(f'Debug (v_f): Added to filters, filters is now: {filters}')
-            else:
-                print(f'Debug (v_f): invalid field {field}')
-        except IndexError as e:
-            print(f'Debug (v_f): filter construction failed during iteration {i}.')
-            print(f'Debug (v_f): remaining args: {filter_args}')
-            print(f'Debug (v_f): {e}')
-            break
-    return filters
-
-
 def user_input(prompt: Optional[str] = '') -> Tuple[str, ]:
     if prompt:
         prompt = prompt.strip() + ' '
@@ -304,6 +266,43 @@ def validate_collection(collections: List[Collection], key: str) -> Collection:
         return collection
 
 
+def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:
+    """Construct a list of valid filter tuples (field, value) from user input.
+
+    Args:
+        fields (List[str]): the fields that can be filtered
+        filter_args (List[str]): the user's input
+
+    Returns:
+        List[Tuple[str, str]]: list of filter tuples (field, value)
+    """
+    filters = []  # NOTE (v_f) v_f
+
+    # print(f'Debug (v_f): len(args): {len(filter_args)}')
+    # print(f'Debug (v_f): filter_args: {filter_args}')
+    for i in range(0, len(filter_args), 2):
+        try:
+            # print(f'Debug (v_f): Trying filter construction {i}...')
+            field = filter_args[i]
+            value = filter_args[i+1]
+            # print(f'Debug (v_f): Field: {field}, value: {value}')
+            if any(field in fil[0] for fil in filters):
+                print('Warning: Cannot have more than 1 filter per field!')
+                print(f'Info: denied filter: ({field}, {value})')
+                continue
+            elif field in fields:
+                filters.append((field, value))
+                # print(f'Debug (v_f): Added to filters, filters is now: {filters}')
+            else:
+                print(f'Debug (v_f): invalid field {field}')
+        except IndexError as e:
+            print(f'Debug (v_f): filter construction failed during iteration {i}.')
+            print(f'Debug (v_f): remaining args: {filter_args}')
+            print(f'Debug (v_f): {e}')
+            break
+    return filters
+
+
 def _filter(items: List[Any], filters: List[Tuple[str, str]]) -> Tuple[List[Any], List[Any]]:
     """Filter through a sequence of objects, return the exact- and close matches
 
@@ -320,7 +319,7 @@ def _filter(items: List[Any], filters: List[Tuple[str, str]]) -> Tuple[List[Any]
         exact_matches &= {item for item in items if getattr(item, field) == value}
 
     # 2 close matches:
-    #       partial matches (matches that only some fields match)
+    #       partial matches (matches that only match some fields)
     #       marginal matches (fields with margin match within it)
     # 2.1 close matches ~ get ALL matches against the items not included in `exact matches`
     all_close_matches = []
@@ -340,12 +339,12 @@ def _filter(items: List[Any], filters: List[Tuple[str, str]]) -> Tuple[List[Any]
     return exact_matches, close_matches
 
 
-def stringify_filter_results(header: str, exact_result: List[Any], close_result: List[Any]) -> None:
+def stringify_filter_results(header: str, exact_result: List[Any], close_result: List[Any]) -> str:
     """Creates and returns a nice display format string for the results from a `_filter` call"""
     line = '\n' + '---' * 30 + '\n'
     weak_line = '\n' + '-  ' * 30 + '\n'
     if exact_result:
-        exact_text = '\n'.join(str(game) for game in (exact_result))
+        exact_text = '\n'.join(str(item) for item in (exact_result))
     else:
         exact_text = f'{"< no exact matches >":^80}'
     if close_result:
