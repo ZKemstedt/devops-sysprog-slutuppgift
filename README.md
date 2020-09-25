@@ -3,12 +3,12 @@
 ## Setup
 
 ### Python version
-This project was written in Python 3.8.5, but any python 3.6 or higher should work fine.
+Python 3.8
 
 ### About Pipenv
 
-This project uses [Pipenv](https://github.com/pypa/pipenv) to manage python packages, but at this time the only one used is yaml.
-Therefore it might be a bit overboard to use Pipenv for this project. Therefore it's completely optional to use Pipenv.
+This project uses [Pipenv](https://github.com/pypa/pipenv) to manage python packages, but at this time the only package used is yaml.
+Since it might be a bit overboard to use Pipenv (or any virtual env to begin with) for a single package (a common one at that) it's completely optional to use Pipenv.
 
 
 ### If you only want to install yaml and get on with it:
