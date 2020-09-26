@@ -57,7 +57,7 @@ class Collection(object):
         return game
 
     def add_game(self, title: str, players: str, duration: str, age: str,
-                 times_played: None, rating: str = None) -> None:
+                 times_played: str = None, rating: str = None) -> None:
         check_args = [players, duration, age]
         if times_played:
             check_args.append(times_played)
