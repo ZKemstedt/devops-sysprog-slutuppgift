@@ -1,7 +1,7 @@
 from typing import List, Dict
 
-from boardgame import BoardGame
-from filters import stringify_filter_results, _filter, validate_filters
+from app.boardgame import BoardGame
+from app.filters import stringify_filter_results, _filter, validate_filters
 
 
 class Collection(object):
@@ -57,15 +57,22 @@ class Collection(object):
         return game
 
     def add_game(self, title: str, players: str, duration: str, age: str,
-                 times_played: str = '', rating: str = '') -> None:
+                 times_played: None, rating: str = None) -> None:
+        check_args = [players, duration, age]
+        if times_played:
+            check_args.append(times_played)
+        if rating:
+            check_args.append(rating)
+
         if any(game.title == title for game in self.games):
             print('Error: This game already exists.')
-            return
-        elif not all((players.isdigit(), duration.isdigit(), age.isdigit(), times_played.isdigit())):
-            print('Error: [players], [duration] and [age_recommendation] must all be integers!')
-            return
+
+        elif not all([arg.isdigit() for arg in check_args]):
+            print(f'Error: {", ".join(arg for arg in check_args) } must be integers!')
+
         else:
-            self.games.append(BoardGame(title, players, duration, age, rating, times_played))
+            game = BoardGame(title, *check_args)
+            self.games.append(game)
             print('Info: Successfully added the game.')
 
     def remove_game(self, game: BoardGame) -> None:

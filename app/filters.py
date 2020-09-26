@@ -1,6 +1,6 @@
 from typing import Tuple, List, Any
 
-from constants import FILTER_MARGINS
+from app.constants import FILTER_MARGINS
 
 
 def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:

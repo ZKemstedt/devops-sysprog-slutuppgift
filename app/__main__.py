@@ -2,9 +2,9 @@ import yaml
 from typing import List, Tuple, Optional
 from pathlib import Path
 
-from collection import Collection
-from boardgame import BoardGame
-from constants import MAIN_MENU_INSTRUCTIONS, MANAGE_COLLECTIONS_MENU_INSTRUCTIONS, CLEAR, INTRODUCTION
+from app.collection import Collection
+from app.boardgame import BoardGame
+from app.constants import MAIN_MENU_INSTRUCTIONS, MANAGE_COLLECTIONS_INSTRUCTIONS, CLEAR, INTRODUCTION
 
 
 def user_input(prompt: Optional[str] = '') -> Tuple[str, ]:
@@ -48,22 +48,23 @@ def main(col: Collection, cols: List[Collection]) -> None:
         col (Collection): The currently selected instance of `Collection`.
         cols: (List[Collection]) The currently registered collections.
     """
-    MAIN_MENU_CHOICES = {
-        '1': lambda col, *args: col.add_game(*args),
-        '2': lambda col, key: col.remove_game(col.get_game(key)),
-        '3': lambda col, key, field, value: col.edit_game(col.get_game(key), field, value),
+    # NOTE see MAIN_MENU_INSTRUCTIONS and MANAGE_COLLECTIONS_INSTRUCTIONS
+    MAIN_MENU = {
+        '1': lambda *args: col.add_game(*args),
+        '2': lambda key: col.remove_game(col.get_game(key)),
+        '3': lambda key, field, value: col.edit_game(col.get_game(key), field, value),
         '4': lambda x: col.list_games(),
-        '5': lambda col, key, rating: col.rate_game(col.get_game(key), rating),
-        '6': lambda col, key: col.play_game(col.get_game(key)),
-        '7': lambda col, *args: col.list_games(*args),
-        '8': lambda x: MANAGE_COLLECTIONS_MENU_CHOICES,
+        '5': lambda key, rating: col.rate_game(col.get_game(key), rating),
+        '6': lambda key: col.play_game(col.get_game(key)),
+        '7': lambda *args: col.list_games(*args),
+        '8': lambda x: MANAGE_COLLECTIONS,
         '?': lambda x: MAIN_MENU_INSTRUCTIONS,
         '0': lambda x: 0,
         # "secret", not harmful
         'title': lambda x: big_title('Main Menu'),
     }
 
-    MANAGE_COLLECTIONS_MENU_CHOICES = {
+    MANAGE_COLLECTIONS = {
         '1': lambda name: cols.append(Collection(name)
                                       if not any(c.name == name for c in cols)
                                       else 'Error: a collection with that name already exists'),
@@ -71,8 +72,8 @@ def main(col: Collection, cols: List[Collection]) -> None:
         '3': lambda key, name: get_collection(key).change_name(name) if get_collection(key) else None,
         '4': lambda x: CLEAR + [str(c) for c in cols],
         '5': lambda key: get_collection(key),
-        '8': lambda x: MAIN_MENU_CHOICES,
-        '?': lambda x: MANAGE_COLLECTIONS_MENU_INSTRUCTIONS,
+        '8': lambda x: MAIN_MENU,
+        '?': lambda x: MANAGE_COLLECTIONS_INSTRUCTIONS,
         '0': lambda x: 0,
         # "secret", not harmful
         'title': lambda x: big_title('Manage Collections'),
@@ -80,12 +81,14 @@ def main(col: Collection, cols: List[Collection]) -> None:
     print(CLEAR)
 
     # Start at main menu
-    _menu = MAIN_MENU_CHOICES
-    print(_menu['title'](None))
-    print(_menu['?'](None))
+    menu = MAIN_MENU
+    print(menu['title'](None))
+    print(menu['?'](None))
 
     while True:
         ret = None
+
+        # get user input
         if col:
             col_prompt = col.name if len(col.name) <= 15 else col.name[:13] + '...'
         else:
@@ -96,18 +99,26 @@ def main(col: Collection, cols: List[Collection]) -> None:
             return 0
         action = args.pop(0)
 
-        if action in _menu:
+        # act on user input
+        if action in menu:
             try:
                 if args:
-                    ret = _menu[action](*args)
+                    ret = menu[action](*args)
                 else:
-                    ret = _menu[action](None)
+                    # lambda functions always take at least 1 argument.
+                    ret = menu[action](None)
                 # print(f'Debug: type(ret): {type(ret)}')
                 # print(f'Debug: value(ret): {ret}')
-            except ValueError as e:
+
+            # TypeError: a function that required x arguments received < x arguments
+            # AttributeError: a function that required 1 argument did not receive that
+            #                 argument -> gets called with argument: `None`
+            except (TypeError, AttributeError) as e:
                 print('Error: Invalid argument count')
+                print(f'Debug: {type(e)}')
                 print(f'Debug: {e}')
 
+            # follow up action (if not None)
             if isinstance(ret, int):
                 return
             elif isinstance(ret, str):
@@ -115,10 +126,10 @@ def main(col: Collection, cols: List[Collection]) -> None:
             elif isinstance(ret, Collection):
                 col = ret
             elif isinstance(ret, dict):
-                _menu = ret
+                menu = ret
                 print(CLEAR)
-                print(_menu['title'](None))
-                print(_menu['?'](None))
+                print(menu['title'](None))
+                print(menu['?'](None))
 
         elif not action:
             print('Tips: type ? for help, 0 to exit')
@@ -127,8 +138,10 @@ def main(col: Collection, cols: List[Collection]) -> None:
 
 
 if __name__ == "__main__":
+    # program start
     print(CLEAR)
     print('Debug: Program start.')
+
     # load data
     file = Path('collectiondata', 'boardgamecollections.yml')
     with file.open(encoding="UTF-8") as f:

@@ -25,7 +25,7 @@ MAIN_MENU_INSTRUCTIONS = """
 """
 
 
-MANAGE_COLLECTIONS_MENU_INSTRUCTIONS = """
+MANAGE_COLLECTIONS_INSTRUCTIONS = """
   1 create new collection     ::= 1 [name]
   2 remove collection         ::= 2 [index|name]
   3 change collection name    ::= 3 [index|name] [new name]

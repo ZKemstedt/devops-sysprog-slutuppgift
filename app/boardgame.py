@@ -5,7 +5,7 @@ class BoardGame(object):
     int_fields = ['players', 'duration', 'age_recommendation', 'rating', 'times_played']
     fields = int_fields + ['title']
 
-    def __init__(self, title: str, players: str, duration: str, age: str, times_played: str = '', rating: str = ''):
+    def __init__(self, title: str, players: str, duration: str, age: str, times_played: str = '0', rating: str = ''):
         self.title = title
         self.players = players
         self.duration = duration
