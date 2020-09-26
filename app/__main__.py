@@ -62,21 +62,23 @@ def main(col: Collection, cols: List[Collection]) -> None:
         '0': lambda x: 0,
         # "secret", not harmful
         'title': lambda x: big_title('Main Menu'),
+        'name': lambda x: 'main',
     }
 
     MANAGE_COLLECTIONS = {
         '1': lambda name: cols.append(Collection(name)
                                       if not any(c.name == name for c in cols)
                                       else 'Error: a collection with that name already exists'),
-        '2': lambda key: cols.remove(get_collection(key)) if get_collection(key) else None,
-        '3': lambda key, name: get_collection(key).change_name(name) if get_collection(key) else None,
-        '4': lambda x: CLEAR + [str(c) for c in cols],
-        '5': lambda key: get_collection(key),
+        '2': lambda key: cols.remove(get_collection(cols, key)) if get_collection(cols, key) else None,
+        '3': lambda key, name: get_collection(cols, key).change_name(name) if get_collection(cols, key) else None,
+        '4': lambda x: CLEAR + '\n'.join([str(c) for c in cols]),
+        '5': lambda key: get_collection(cols, key),
         '8': lambda x: MAIN_MENU,
         '?': lambda x: MANAGE_COLLECTIONS_INSTRUCTIONS,
         '0': lambda x: 0,
         # "secret", not harmful
         'title': lambda x: big_title('Manage Collections'),
+        'name': lambda x: 'cols',
     }
     print(CLEAR)
 
@@ -94,7 +96,8 @@ def main(col: Collection, cols: List[Collection]) -> None:
         else:
             col_prompt = ('< no collection >')
         try:
-            args = user_input(f'(col: {col_prompt})')
+            menu_name = menu["name"](None)
+            args = user_input(f'(col: {col_prompt}) [m:{menu_name}]')
         except KeyboardInterrupt:
             return 0
         action = args.pop(0)
@@ -163,7 +166,7 @@ if __name__ == "__main__":
 
     # starting point
     if not collections:
-        collections.append(Collection(name='Base'))
+        collections.append(Collection(name='base'))
     collection = collections[0]
 
     # start main (menu).
