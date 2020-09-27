@@ -1,9 +1,19 @@
 from typing import List
 
+# how to perform check? eg: is the value '5' ok for field (key) 'duration' ?
+# check_result = BOARDGAME_FIELD_CHECK['duration']('5')
+# -> True
+BOARDGAME_FIELD_CHECK = {
+    'title':                lambda x: not x.isdigit(),
+    'players':              lambda x: x.isdigit(),
+    'duration':             lambda x: x.isdigit(),
+    'age_recommendation':   lambda x: x.isdigit(),
+    'times_played':         lambda x: x.isdigit(),
+    'rating':               lambda x: x.isdigit(),
+    }
+
 
 class BoardGame(object):
-    int_fields = ['players', 'duration', 'age_recommendation', 'rating', 'times_played']
-    fields = int_fields + ['title']
 
     def __init__(self, title: str, players: str, duration: str, age: str, times_played: str = '0', rating: str = ''):
         self.title = title
@@ -28,9 +38,6 @@ class BoardGame(object):
                 + str_sized(self.times_played, 13).rjust(14)
                 + str_sized(self.rating, 7).rjust(8)
                 )
-
-    def set_rating(self, rating: str) -> None:
-        self.rating = rating
 
     def inc_times_played(self, inc: int = 1) -> None:
         # I like storing my integers as strings, okay!?
