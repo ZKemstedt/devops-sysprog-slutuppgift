@@ -12,6 +12,7 @@ class BoardGame(object):
         self.age_recommendation = age
         self.times_played = times_played
         self.rating = rating
+        self.name = self.title
 
     def modify(self, field: str, value: str) -> None:
         setattr(self, field, value)
