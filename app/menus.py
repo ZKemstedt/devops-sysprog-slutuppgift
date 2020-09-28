@@ -1,3 +1,5 @@
+# flake8: noqa
+
 from typing import Dict, Callable
 
 from app.utils import Whitespace
