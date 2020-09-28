@@ -1,6 +1,16 @@
 from typing import Tuple, List, Any
 
-from app.constants import FILTER_MARGINS
+FILTER_MARGINS = {
+    # Collection
+    'name': '',
+    # BoardGame
+    'title': '',
+    'players': 2,
+    'duration': 4,
+    'recommended_age': 3,
+    'rating': 1,
+    'times_played': 5,
+}
 
 
 def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:
@@ -15,7 +25,7 @@ def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[s
             field = filter_args[i]
             value = filter_args[i+1]
             # print(f'Debug (v_f): Field: {field}, value: {value}')
-            if any(field in fil[0] for fil in filters):
+            if any(field in f[0] for f in filters):
                 print('Warning: Cannot have more than 1 filter per field!')
                 print(f'Info: denied filter: ({field}, {value})')
                 continue
