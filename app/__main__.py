@@ -53,14 +53,14 @@ def main(manager: CollectionManager) -> None:
         if action in menu.choices:
             func = menu.choices[action]  # aquire the function to call
             args.insert(0, manager)  # manager instance must always be the first argument
-            # try:
-            ret = func(*args)  # call the function
+            try:
+                ret = func(*args)  # call the function
 
             # TypeError: a function received too few or too many arguments
-            # except (TypeError) as e:
-            #     print('Error: Invalid argument count')
-            #     print(f'Debug: {type(e)}')
-            #     print(f'Debug: {e}')
+            except (TypeError) as e:
+                print('Error: Invalid argument count')
+                print(f'Debug: {type(e)}')
+                print(f'Debug: {e}')
 
             # follow up on any returned values
             if isinstance(ret, int):
@@ -110,20 +110,19 @@ if __name__ == "__main__":
     except Exception:
         pass
     else:
-        # try:
-        manager = CollectionManager(active=None, items=collections)
-        main(manager)
-        # except Exception as e:
-        #     print('Critical: Unhandled error!')
-        #     print(f'Critical: Type: {type(e)}')
-        #     print(f'Critical: Message: {e}')
-        # finally:
+        try:
+            manager = CollectionManager(active=None, items=collections)
+            main(manager)
+        except Exception as e:
+            print('Critical: Unhandled error! the program will exit.')
+            print(f'Critical: Type: {type(e)}')
+            print(f'Critical: Message: {e}')
+        finally:
+            # --- save data ---
+            print('Info: Saving data and exiting...')
 
-        # --- save data ---
-        print('Info: Saving data and exiting...')
-
-        data = manager.save()
-        with file.open(mode='w', encoding="UTF-8") as f:
-            yaml.dump(data, f, default_flow_style=False, explicit_start=True)
+            data = manager.save()
+            with file.open(mode='w', encoding="UTF-8") as f:
+                yaml.dump(data, f, default_flow_style=False, explicit_start=True)
     # exit
     print('Debug: Program exit.')
