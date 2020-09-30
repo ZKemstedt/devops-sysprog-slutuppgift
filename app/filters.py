@@ -1,4 +1,8 @@
+import logging
 from typing import Tuple, List, Any
+
+log = logging.getLogger(__name__)
+
 
 FILTER_MARGINS = {
     # Collection
@@ -15,28 +19,29 @@ FILTER_MARGINS = {
 
 def validate_filters(fields: List[str], *filter_args: List[str]) -> List[Tuple[str, str]]:
     """Construct a list of valid filter tuples (field, value) from a list of valid fields and user input."""
-    filters = []  # NOTE (v_f) v_f
+    filters = []
+    log.trace('Enter `validate_filters(fields, *filter_args)` with '
+              f'fields: {fields}, filter_args: {filter_args}')
 
-    # print(f'Debug (v_f): len(args): {len(filter_args)}')
-    # print(f'Debug (v_f): filter_args: {filter_args}')
-    for i in range(0, len(filter_args), 2):
+    # TODO add examples
+
+    for j, i in enumerate(range(0, len(filter_args), 2), start=1):
         try:
-            # print(f'Debug (v_f): Trying filter construction {i}...')
+            log.trace(f'Trying filter construction {j}...')
             field = filter_args[i]
             value = filter_args[i+1]
-            # print(f'Debug (v_f): Field: {field}, value: {value}')
+            log.trace(f'Aquired field: {field}, value: {value}')
             if any(field in f[0] for f in filters):
                 print('Warning: Cannot have more than 1 filter per field!')
                 print(f'Info: denied filter: ({field}, {value})')
                 continue
             elif field in fields:
                 filters.append((field, value))
-                # print(f'Debug (v_f): Added to filters, filters is now: {filters}')
+                log.trace(f'Added to filters, filters is now: {filters}')
             else:
                 print(f'Debug (v_f): invalid field {field}')
         except IndexError as e:
-            print(f'Debug (v_f): filter construction failed during iteration {i}.')
-            print(f'Debug (v_f): remaining args: {filter_args}')
+            log.trace(f'Filter construction failed during iteration {j}.')
             print(f'Debug (v_f): {e}')
             break
     return filters

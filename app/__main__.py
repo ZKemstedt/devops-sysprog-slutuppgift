@@ -1,5 +1,6 @@
 import yaml
-from typing import Optional, List
+import logging
+from typing import Optional, List, Tuple, Union, Callable
 from pathlib import Path
 
 from app.collections import CollectionManager, BoardGameCollection
@@ -8,6 +9,10 @@ from app.menus import GameMenu, Menu
 from app.utils import str_sized
 from app.utils import Whitespace
 
+log = logging.getLogger(__name__)
+
+FILENAME = 'boardgamecollections.yml'
+FILEDIR = 'collectiondata'
 
 INTRODUCTION = """
   Boardgame Collection Manager
@@ -21,48 +26,37 @@ INTRODUCTION = """
   """
 
 
-def user_input(text: Optional[str] = '', prompt: Optional[str] = '') -> List[str, ]:
-    if prompt:
-        prompt = prompt.strip()
-    return list(input(f'{text}{prompt} >> ').strip().lower().split(' '))
+def excecute_action(func: Callable, args: List[Union[CollectionManager, str]]) -> Optional[Union[Menu, str, int, None]]:
+    try:
+        return func(*args)
+    except TypeError:
+        print('Invalid argument count')
+        return None
 
 
-def main(manager: CollectionManager) -> None:
-    """Main Menu loop"""
-    print(Whitespace.clear)
-
-    # Start at main menu
-    menu = GameMenu
-    print(menu.title)
-    print(menu.instructions)
-
-    while True:
-        ret = None
-        func = None
-
-        # get user input
-        try:
-            prompt_text = (f'[c:{str_sized(manager.active.name, 25, "...")}]'
-                           f'[m:{str_sized(menu.name.lower(), 25, "...")}]')
-            args = user_input(prompt_text)
-        except KeyboardInterrupt:
-            return
-
-        # execute action
+def get_user_input(menu: Menu, manager: CollectionManager) -> Tuple[str, List[str]]:
+    prompt = (f'[c:{str_sized(manager.active.name, 25, "...")}]'
+              f'[m:{str_sized(menu.name.lower(), 25, "...")}]'
+              ' >> ')
+    try:
+        args = list(input(f'{prompt}').lower().strip().split())
+        log.trace(f'(get_user_input) user >> {args}')
+    except KeyboardInterrupt:
+        return 0, 0
+    if len(args) == 0:
+        return 0, 0
+    else:
         action = args.pop(0)
+        args.insert(0, manager)
+        log.trace(f'(get_user_input) -> ({action}, {args})')
+        return (action, args)
+
+
+def main(menu: Menu, manager: CollectionManager) -> None:
+    while True:
+        action, args = get_user_input(menu, manager)
         if action in menu.choices:
-            func = menu.choices[action]  # aquire the function to call
-            args.insert(0, manager)  # manager instance must always be the first argument
-            try:
-                ret = func(*args)  # call the function
-
-            # TypeError: a function received too few or too many arguments
-            except (TypeError) as e:
-                print('Error: Invalid argument count')
-                print(f'Debug: {type(e)}')
-                print(f'Debug: {e}')
-
-            # follow up on any returned values
+            ret = excecute_action(menu.choices[action], args)
             if isinstance(ret, int):
                 return
             elif isinstance(ret, str):
@@ -79,50 +73,55 @@ def main(manager: CollectionManager) -> None:
             print('Error: Invalid command.')
 
 
-if __name__ == "__main__":
-    # program start
+def get_menu() -> Menu:
+    menu = GameMenu()
     print(Whitespace.clear)
-    print('Debug: Program start.')
+    print(menu.title)
+    print(menu.instructions)
+    return menu
 
-    # --- load data ---
-    file = Path('collectiondata', 'boardgamecollections.yml')
-    with file.open(encoding="UTF-8") as f:
+
+def get_manager(p: Path) -> CollectionManager:
+    with p.open(encoding='utf-8') as f:
         data = yaml.safe_load(f)
-    collections = []
-    # saved manager?
     if 'name' in data and 'items' in data and data['name'] == 'manager':
-        # Convert data to Collection and BoardGame objects
-        for collection in data['items']:
-            boardgames = [BoardGame(*args) for args in collection['items']]
-            collections.append(BoardGameCollection(name=collection['name'], items=boardgames))
-        if collections:
-            print(f'Info: Loaded {len(collections)} collections from file.')
-    else:
-        print('Warning: Could not read data from file')
+        try:
+            manager = CollectionManager(active=None, items=                             # noqa E251
+                [BoardGameCollection(name=collection['name'],items=                     # noqa E251
+                    [BoardGame(*args) for args in collection['items']]                  # noqa E128
+                ) for collection in data['items']]
+            )
+        except Exception as e:
+            log.error('Error when reading file', exc_info=e)
+        else:
+            log.info(f'Loaded {len(manager.items)} collections from file.')
+            return manager
+    manager = CollectionManager(active=None, items=[])
+    log.warning('Could not read data from file')
+    return manager
 
-    # cleanup
-    del data
 
-    # --- main ---
+def save_manager(p: Path, m: CollectionManager) -> None:
+    with p.open(mode='w', encoding="UTF-8") as f:
+        yaml.dump(manager.save(), f, default_flow_style=False, explicit_start=True)
+
+
+if __name__ == "__main__":
+    print(Whitespace.clear)
+    log.info('Program start.')
     print(INTRODUCTION)
+
+    file = Path(FILEDIR, FILENAME)
+    manager = get_manager(file)
     try:
         input('(press enter to start)')
-    except Exception:
+        menu = get_menu()
+        main(menu, manager)
+    except KeyboardInterrupt:
         pass
-    else:
-        try:
-            manager = CollectionManager(active=None, items=collections)
-            main(manager)
-        except Exception as e:
-            print('Critical: Unhandled error! the program will exit.')
-            print(f'Critical: Type: {type(e)}')
-            print(f'Critical: Message: {e}')
-        finally:
-            # --- save data ---
-            print('Info: Saving data and exiting...')
-
-            data = manager.save()
-            with file.open(mode='w', encoding="UTF-8") as f:
-                yaml.dump(data, f, default_flow_style=False, explicit_start=True)
-    # exit
-    print('Debug: Program exit.')
+    except Exception as e:
+        log.critical('Unhandled error! the program will exit.', exc_info=e)
+    finally:
+        log.info('Saving data and exiting...')
+        save_manager(file, manager)
+        log.info('Program exit.')
